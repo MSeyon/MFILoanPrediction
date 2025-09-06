@@ -1,13 +1,11 @@
-# 📦 Streamlit App Starter Kit 
-```
-⬆️ (Replace above with your app's name)
-```
+# 📦 MFI Loan Predictor App
+This is a MFI Loan prediction app
 
 Description of the app ...
 
 ## Demo App
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://app-starter-kit.streamlit.app/)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://mfiloanprediction.streamlit.app/)
 
 ## GitHub Codespaces
 
