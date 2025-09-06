@@ -27,19 +27,19 @@ def predict_loan_default(model, encoders, data):
         'BorrowerAge': data['Age'],
         'HouseholdIncome': data['AnnualIncome'],
         'MicroLoanAmount': data['LoanAmount'],
-        'RepaymentHistoryScore': data.get('CreditScore', 650),  # Assuming a default if not present in the new UI
+        'RepaymentHistoryScore': data.get('CreditScore', 650),
         'MonthsInIncomeActivity': data['MonthsEmployed'],
-        'OutstandingLoansCount': data.get('OutstandingLoansCount', 1), # Assuming a default if not present in the new UI
+        'OutstandingLoansCount': data.get('OutstandingLoansCount', 1),
         'MicroLoanInterestRate': data['InterestRate'],
         'LoanTermMonths': data['LoanTerm'],
-        'DebtToIncomeRatio': data.get('DebtToIncomeRatio', 0.5), # Assuming a default if not present in the new UI
+        'DebtToIncomeRatio': data.get('DebtToIncomeRatio', 0.5),
         'EducationLevel': data['EducationLevel'],
         'PrimaryIncomeSource': data['EmploymentType'],
         'HouseholdStatus': data['MaritalStatus'],
-        'OwnsLandOrHouse': data.get('OwnsLandOrHouse', 'No'), # Assuming a default if not present in the new UI
+        'OwnsLandOrHouse': data.get('OwnsLandOrHouse', 'No'),
         'NumDependents': data['Dependents'],
         'MicroLoanPurpose': data['LoanPurpose'],
-        'GroupLendingParticipation': data.get('GroupLendingParticipation', 'No') # Assuming a default if not present in the new UI
+        'GroupLendingParticipation': data.get('GroupLendingParticipation', 'No')
     }
     
     # Create a DataFrame from the input data
@@ -65,7 +65,7 @@ def predict_loan_default(model, encoders, data):
     prediction_proba = model.predict_proba(input_df)[:, 1][0]
     
     # --- IMPORTANT: Set Your Optimized Threshold Here ---
-    # Replace the placeholder value with the best threshold you found (e.g., 0.35)
+    # The default XGBoost threshold is 0.5
     optimized_threshold = 0.35 
     
     if prediction_proba > optimized_threshold:
@@ -77,11 +77,24 @@ def predict_loan_default(model, encoders, data):
 
 # --- Streamlit UI and Logic ---
 
+# Set up page config
+st.set_page_config(page_title="MFI Loan Approval", layout="centered")
+
 # Initialize session state for the clear button
 if 'form_data' not in st.session_state:
-    st.session_state.form_data = {}
-
-st.set_page_config(page_title="MFI Loan Approval", layout="centered")
+    st.session_state.form_data = {
+        'Age': 30,
+        'AnnualIncome': 500000,
+        'EducationLevel': 'High School',
+        'MaritalStatus': 'Married',
+        'Dependents': 'Yes',
+        'EmploymentType': 'Full-time',
+        'MonthsEmployed': 24,
+        'LoanAmount': 500000,
+        'InterestRate': 5.5,
+        'LoanTerm': 60,
+        'LoanPurpose': 'Business'
+    }
 
 st.title("MF LOAN APPROVAL")
 st.markdown("Please fill out all required information for your loan application.")
@@ -93,37 +106,48 @@ if model and encoders:
     # --- Input Form ---
     with st.form(key='loan_form'):
         st.header("Personal Information")
-
-        # Create two columns for a cleaner layout
         col1, col2 = st.columns(2)
 
-        # First Column for numerical features
         with col1:
-            st.session_state.form_data['Age'] = st.number_input("Age *", min_value=18, max_value=100, value=st.session_state.form_data.get('Age', 30))
-            st.session_state.form_data['EducationLevel'] = st.selectbox("Education Level *", options=['High School', 'Bachelor\'s', 'Master\'s', 'PhD'], index=st.session_state.form_data.get('EducationLevel', 0))
-            st.session_state.form_data['Dependents'] = st.selectbox("Dependents *", options=['Yes', 'No'], index=st.session_state.form_data.get('Dependents', 0))
-            st.session_state.form_data['LoanAmount'] = st.number_input("Loan Amount (Rs) *", min_value=0, value=st.session_state.form_data.get('LoanAmount', 500000))
-            st.session_state.form_data['LoanTerm'] = st.number_input("Loan Term (months) *", min_value=1, value=st.session_state.form_data.get('LoanTerm', 60))
+            st.session_state.form_data['Age'] = st.number_input("Age *", min_value=18, max_value=100, value=st.session_state.form_data['Age'], key='age_input')
+            st.session_state.form_data['EducationLevel'] = st.selectbox("Education Level *", options=['High School', 'Bachelor\'s', 'Master\'s', 'PhD'], index=['High School', 'Bachelor\'s', 'Master\'s', 'PhD'].index(st.session_state.form_data['EducationLevel']), key='edu_level_select')
+            st.session_state.form_data['Dependents'] = st.selectbox("Dependents *", options=['Yes', 'No'], index=['Yes', 'No'].index(st.session_state.form_data['Dependents']), key='dependents_select')
 
-        # Second Column for categorical features
         with col2:
-            st.session_state.form_data['AnnualIncome'] = st.number_input("Annual Income (Rs) *", min_value=0, value=st.session_state.form_data.get('AnnualIncome', 500000))
-            st.session_state.form_data['MaritalStatus'] = st.selectbox("Marital Status *", options=['Married', 'Single', 'Divorced'], index=st.session_state.form_data.get('MaritalStatus', 0))
-            st.session_state.form_data['EmploymentType'] = st.selectbox("Employment Type *", options=['Full-time', 'Part-time', 'Self-employed', 'Unemployed'], index=st.session_state.form_data.get('EmploymentType', 0))
-            st.session_state.form_data['MonthsEmployed'] = st.number_input("Months Employed *", min_value=0, value=st.session_state.form_data.get('MonthsEmployed', 24))
-            st.session_state.form_data['InterestRate'] = st.number_input("Interest Rate (%) *", min_value=0.0, max_value=100.0, value=st.session_state.form_data.get('InterestRate', 5.5))
-            st.session_state.form_data['LoanPurpose'] = st.selectbox("Loan Purpose *", options=['Business', 'Education', 'Other', 'Auto', 'Emergency', 'Health', 'Home'], index=st.session_state.form_data.get('LoanPurpose', 0))
+            st.session_state.form_data['AnnualIncome'] = st.number_input("Annual Income (Rs) *", min_value=0, value=st.session_state.form_data['AnnualIncome'], key='annual_income_input')
+            st.session_state.form_data['MaritalStatus'] = st.selectbox("Marital Status *", options=['Married', 'Single', 'Divorced'], index=['Married', 'Single', 'Divorced'].index(st.session_state.form_data['MaritalStatus']), key='marital_status_select')
+
+        st.header("Employment Information")
+        col3, col4 = st.columns(2)
+        with col3:
+            st.session_state.form_data['EmploymentType'] = st.selectbox("Employment Type *", options=['Full-time', 'Part-time', 'Self-employed', 'Unemployed'], index=['Full-time', 'Part-time', 'Self-employed', 'Unemployed'].index(st.session_state.form_data['EmploymentType']), key='employment_type_select')
+        with col4:
+            st.session_state.form_data['MonthsEmployed'] = st.number_input("Months Employed *", min_value=0, value=st.session_state.form_data['MonthsEmployed'], key='months_employed_input')
+
+        st.header("Loan Information")
+        col5, col6 = st.columns(2)
+        with col5:
+            st.session_state.form_data['LoanAmount'] = st.number_input("Loan Amount (Rs) *", min_value=0, value=st.session_state.form_data['LoanAmount'], key='loan_amount_input')
+            st.session_state.form_data['LoanTerm'] = st.number_input("Loan Term (months) *", min_value=1, value=st.session_state.form_data['LoanTerm'], key='loan_term_input')
+        with col6:
+            st.session_state.form_data['InterestRate'] = st.number_input("Interest Rate (%) *", min_value=0.0, max_value=100.0, value=st.session_state.form_data['InterestRate'], key='interest_rate_input')
+            st.session_state.form_data['LoanPurpose'] = st.selectbox("Loan Purpose *", options=['Business', 'Education', 'Other', 'Auto', 'Emergency', 'Health', 'Home'], index=['Business', 'Education', 'Other', 'Auto', 'Emergency', 'Health', 'Home'].index(st.session_state.form_data['LoanPurpose']), key='loan_purpose_select')
 
         st.markdown("---") # Add a horizontal line to separate sections
-        col3, col4 = st.columns([1, 1])
-        with col3:
-            clear_button = st.form_submit_button("Clear All")
-        with col4:
+        col7, col8 = st.columns([1, 1])
+        with col7:
+            clear_button_placeholder = st.empty()
+        with col8:
             submit_button = st.form_submit_button("Submit Application")
 
-    # Clear button logic
-    if clear_button:
-        st.session_state.form_data = {}
+    # Clear button logic outside the form
+    if clear_button_placeholder.button("Clear All"):
+        st.session_state.form_data = {
+            'Age': 30, 'AnnualIncome': 500000, 'EducationLevel': 'High School', 
+            'MaritalStatus': 'Married', 'Dependents': 'Yes', 'EmploymentType': 'Full-time', 
+            'MonthsEmployed': 24, 'LoanAmount': 500000, 'InterestRate': 5.5, 
+            'LoanTerm': 60, 'LoanPurpose': 'Business'
+        }
         st.experimental_rerun()
     
     # --- Prediction Result Display ---
@@ -131,19 +155,7 @@ if model and encoders:
         st.subheader("Application Status")
         
         # Make the prediction
-        prediction, probability = predict_loan_default(model, encoders, {
-            'Age': st.session_state.form_data.get('Age'),
-            'AnnualIncome': st.session_state.form_data.get('AnnualIncome'),
-            'EducationLevel': st.session_state.form_data.get('EducationLevel'),
-            'MaritalStatus': st.session_state.form_data.get('MaritalStatus'),
-            'Dependents': st.session_state.form_data.get('Dependents'),
-            'EmploymentType': st.session_state.form_data.get('EmploymentType'),
-            'MonthsEmployed': st.session_state.form_data.get('MonthsEmployed'),
-            'LoanAmount': st.session_state.form_data.get('LoanAmount'),
-            'InterestRate': st.session_state.form_data.get('InterestRate'),
-            'LoanTerm': st.session_state.form_data.get('LoanTerm'),
-            'LoanPurpose': st.session_state.form_data.get('LoanPurpose')
-        })
+        prediction, probability = predict_loan_default(model, encoders, st.session_state.form_data)
         
         # Only proceed if prediction was successful (i.e., not None)
         if prediction is not None:
