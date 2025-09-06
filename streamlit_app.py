@@ -3,7 +3,6 @@ import pandas as pd
 import pickle
 import numpy as np
 
-st.title('MFI Loan Prediction App (Sri Lanka)')
 # --- Helper Functions ---
 def load_assets():
     """Loads the pre-trained model and label encoders."""
